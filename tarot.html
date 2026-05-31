@@ -35,8 +35,10 @@ body::before{
 .top-bar button:hover,.top-bar button.active{background:rgba(160,120,220,0.2);border-color:rgba(200,160,240,0.5);color:#f0e4ff}
 .top-bar .count{background:rgba(160,120,220,0.12);border-color:rgba(200,160,240,0.25);cursor:default}
 .table-area{width:100%;max-width:940px;position:relative;overflow:hidden}
-.table-wrap{width:100%;padding:8px 0;cursor:grab;user-select:none;-webkit-user-select:none;overflow:hidden}
-.table-wrap:active{cursor:grabbing}
+.table-wrap{width:100%;padding:8px 0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;cursor:grab}
+.table-wrap::-webkit-scrollbar{height:4px}
+.table-wrap::-webkit-scrollbar-thumb{background:rgba(200,160,240,0.2);border-radius:2px}
+.table-wrap::-webkit-scrollbar-track{background:transparent}
 .arrow{
   position:absolute;top:50%;transform:translateY(-50%);z-index:10;
   width:32px;height:32px;border-radius:50%;
@@ -258,7 +260,6 @@ SUITS.forEach(function(s,si){
 let drawCount = 1;
 let selectedCards = new Set();
 let deck = [];
-let scrollPos = 0;
 
 function shuffleArray(arr){
   var a = [].concat(arr);
@@ -294,7 +295,6 @@ function renderTable(){
     });
     t.appendChild(d);
   });
-  scrollPos = 0;
   document.getElementById('tableWrap').scrollLeft = 0;
 }
 
@@ -334,49 +334,10 @@ function shuffleDeck(){
   document.getElementById('revealBtn').style.animation = '';
 }
 
-// === 牌桌滑动 ===
+// === 牌桌滑动（使用浏览器原生滚动，更顺滑） ===
 var wrap = document.getElementById('tableWrap');
-wrap.addEventListener('wheel',function(e){
-  e.preventDefault();
-  scrollPos = Math.max(0, Math.min(scrollPos+(e.deltaY||e.deltaX), wrap.scrollWidth-wrap.clientWidth));
-  wrap.scrollLeft = scrollPos;
-},{passive:false});
-
-var isDragging = false, startX = 0;
-wrap.addEventListener('mousedown',function(e){
-  if(e.target.closest('.card')) return;
-  isDragging = true;
-  startX = e.clientX - scrollPos;
-  wrap.style.cursor = 'grabbing';
-});
-window.addEventListener('mousemove',function(e){
-  if(!isDragging) return;
-  scrollPos = Math.max(0, Math.min(e.clientX-startX, wrap.scrollWidth-wrap.clientWidth));
-  wrap.scrollLeft = scrollPos;
-});
-window.addEventListener('mouseup',function(){
-  isDragging = false;
-  wrap.style.cursor = 'grab';
-});
-
-// 移动端触屏滑动
-wrap.addEventListener('touchstart',function(e){
-  if(e.target.closest('.card')) return;
-  isDragging = true;
-  startX = e.touches[0].clientX - scrollPos;
-},{passive:true});
-window.addEventListener('touchmove',function(e){
-  if(!isDragging) return;
-  scrollPos = Math.max(0, Math.min(e.touches[0].clientX-startX, wrap.scrollWidth-wrap.clientWidth));
-  wrap.scrollLeft = scrollPos;
-},{passive:true});
-window.addEventListener('touchend',function(){
-  isDragging = false;
-});
-
 function shiftTable(delta){
-  scrollPos = Math.max(0, Math.min(scrollPos+delta, wrap.scrollWidth-wrap.clientWidth));
-  wrap.scrollLeft = scrollPos;
+  wrap.scrollBy({left: delta, behavior: 'smooth'});
 }
 
 // === 选牌数按钮 ===
