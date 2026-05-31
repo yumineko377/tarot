@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tarot | LD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cinzel:wght@400;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 0%,#1a1030 0%,#0a0618 55%);
+  color:#e0d8ec;font-family:'Noto Serif SC',serif;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 30% 20%,rgba(180,140,220,0.04) 0%,transparent 50%),
+             radial-gradient(circle at 70% 80%,rgba(140,100,200,0.03) 0%,transparent 50%);
+}
+.app{display:flex;width:200vw;height:100vh;transition:transform 0.7s cubic-bezier(0.4,0,0.2,1)}
+.app.on-reveal{transform:translateX(-100vw)}
+.page{width:100vw;height:100vh;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;position:relative;z-index:1}
+/* 第一页 */
+.hero{text-align:center;margin-bottom:10px}
+.hero h1{font-family:'Cinzel',serif;font-size:1.7rem;font-weight:700;background:linear-gradient(135deg,#d4bff0,#c4a0e8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.08em}
+.hero .sub{font-size:.7rem;color:#8b6faf;letter-spacing:.1em}
+.hero .by{font-size:.6rem;color:#5a3f8a;margin-top:2px}
+.top-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:8px}
+.top-bar button,.top-bar .count{
+  padding:7px 18px;border-radius:99px;border:1.5px solid rgba(180,140,220,0.3);
+  background:rgba(255,255,255,0.04);color:#c8b8e0;font-size:.78rem;
+  font-family:inherit;cursor:pointer;transition:all .2s;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.top-bar button:hover,.top-bar button.active{background:rgba(160,120,220,0.2);border-color:rgba(200,160,240,0.5);color:#f0e4ff}
+.top-bar .count{background:rgba(160,120,220,0.12);border-color:rgba(200,160,240,0.25);cursor:default}
+.table-area{width:100%;max-width:940px;position:relative;overflow:hidden}
+.table-wrap{width:100%;padding:8px 0;cursor:grab;user-select:none;-webkit-user-select:none;overflow:hidden}
+.table-wrap:active{cursor:grabbing}
+.arrow{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:10;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(20,10,40,0.85);border:1.5px solid rgba(200,160,240,0.3);
+  color:#c8b8e0;font-size:.9rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:all .2s;opacity:.75;
+}
+.arrow:hover{opacity:1;border-color:rgba(200,160,240,0.6)}
+.arrow-left{left:2px}.arrow-right{right:2px}
+.table{display:flex;gap:0;align-items:center;padding:0 36px;min-width:max-content}
+.card{
+  width:110px;height:187px;flex-shrink:0;position:relative;margin-left:-16px;
+  cursor:pointer;transition:transform .35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.card-num{
+  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  font-size:.6rem;color:#8b6faf;letter-spacing:.04em;font-weight:600;
+  background:rgba(15,8,30,0.8);padding:1px 6px;border-radius:99px;
+  border:1px solid rgba(180,140,220,0.15);z-index:3;pointer-events:none;
+}
+.card:first-child{margin-left:0}
+.card.selected{transform:translateY(-22px) scale(1.08);z-index:10}
+.card.selected .card-inner{box-shadow:0 0 24px rgba(200,160,240,0.5),0 0 50px rgba(160,120,220,0.2)}
+.card-inner{position:relative;width:100%;height:100%;border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.35)}
+.card-back{
+  width:100%;height:100%;background:linear-gradient(135deg,#1a1040,#2a1850);
+  border:2px solid rgba(200,160,240,0.2);display:flex;align-items:center;justify-content:center;border-radius:10px;
+}
+.card-back img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.card-back .star{font-size:1.8rem;color:rgba(220,200,255,0.5)}
+.select-ring{
+  position:absolute;inset:-3px;border-radius:12px;border:2.5px solid transparent;
+  transition:border-color .3s;pointer-events:none;z-index:2;
+}
+.card.selected .select-ring{border-color:rgba(200,160,240,0.55)}
+.hint{font-size:.72rem;color:#6b4f8a;text-align:center;min-height:20px;margin:6px 0}
+.meditation-hint{font-size:.65rem;color:#5a3f8a;text-align:center;margin-bottom:8px;letter-spacing:.03em;opacity:.7}
+.bottom-bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{
+  padding:10px 26px;border-radius:10px;border:1.5px solid rgba(200,160,240,0.25);
+  background:rgba(255,255,255,0.05);color:#d8c8f0;font-size:.82rem;
+  font-family:inherit;cursor:pointer;transition:all .2s;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.btn:hover{background:rgba(160,120,220,0.2);border-color:rgba(200,160,240,0.5)}
+.btn.accent{background:rgba(160,120,220,0.22);border-color:rgba(180,140,240,0.4);color:#e8dcf8}
+.btn.accent:hover{background:rgba(160,120,220,0.38)}
+/* 第二页 */
+.reveal-page{justify-content:flex-start;padding-top:28px;overflow-y:auto;overflow-x:hidden}
+.reveal-page h2{font-family:'Cinzel',serif;font-size:1.35rem;color:#d4bff0;letter-spacing:.08em;margin-bottom:2px}
+.rev-sub{font-size:.7rem;color:#6b4f8a;margin-bottom:14px}
+.reveal-grid{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;align-items:flex-start;max-width:960px;width:100%;padding:0 16px;margin-bottom:10px}
+.rev-card{display:flex;flex-direction:column;align-items:center;gap:8px;width:170px}
+.rev-card-inner{width:150px;height:255px;position:relative;transition:transform .75s cubic-bezier(0.4,0,0.2,1);transform-style:preserve-3d;border-radius:14px}
+.rev-card.flipped .rev-card-inner{transform:rotateY(180deg)}
+.rev-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;overflow:hidden}
+.rev-back{
+  background:linear-gradient(135deg,#1a1040,#2a1850);border:2px solid rgba(200,160,240,0.25);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(0,0,0,0.35);
+}
+.rev-back img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.rev-back .star{font-size:2.2rem;color:rgba(220,200,255,0.5)}
+.rev-front{
+  background:linear-gradient(180deg,#faf5ef,#f0e8d8);
+  border:2px solid rgba(180,140,100,0.3);transform:rotateY(180deg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px 10px;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,0.35);
+}
+.rev-front img{width:100%;height:100%;object-fit:cover;border-radius:12px;position:absolute;inset:0}
+.rev-card.use-image .rev-front{background:transparent;border:none}
+.rev-front .r-icon{font-size:1.5rem;position:relative;z-index:1}
+.rev-front .r-en{font-family:'Cinzel',serif;font-size:.65rem;font-weight:700;color:#4a3060;letter-spacing:.03em;position:relative;z-index:1}
+.rev-label{text-align:center;font-size:.82rem;font-weight:700;color:#d8c8f0;margin-top:2px;opacity:0;transition:opacity .35s}
+.rev-card.flipped .rev-label{opacity:1}
+.rev-card.reversed .rev-front img{transform:rotate(180deg)}
+.rev-label .rev-pos-tag{font-size:.68rem;margin-left:4px;padding:2px 8px;border-radius:99px}
+.rev-pos-tag.up{background:rgba(100,180,140,0.18);color:#6ab88a}
+.rev-pos-tag.rev{background:rgba(200,120,120,0.18);color:#c08080}
+/* 复制区 */
+.copy-box{text-align:center;margin:12px 0 20px;display:none;flex-direction:column;align-items:center;gap:10px}
+.copy-box input{
+  width:300px;max-width:90vw;padding:10px 16px;border-radius:10px;
+  border:1.5px solid rgba(200,160,240,0.3);background:rgba(255,255,255,0.05);
+  color:#d8c8f0;font-size:.85rem;font-family:inherit;text-align:center;
+  transition:all .2s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);outline:none;
+}
+.copy-box input::placeholder{color:#6b4f8a}
+.copy-box input:focus{border-color:rgba(200,160,240,0.6);background:rgba(255,255,255,0.08)}
+.copy-box label{font-size:.72rem;color:#8b6faf;letter-spacing:.04em}
+.copy-btn{
+  padding:12px 36px;border-radius:12px;border:1.5px solid rgba(100,200,160,0.3);
+  background:rgba(40,120,80,0.12);color:#8ad8b0;font-size:.9rem;
+  font-family:inherit;cursor:pointer;transition:all .3s;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:.04em;
+}
+.copy-btn:hover{background:rgba(60,160,100,0.22);border-color:rgba(100,200,160,0.55);color:#b0f0d0}
+.copy-btn.copied{background:rgba(60,160,100,0.28);color:#d0ffe8;border-color:rgba(100,200,160,0.6)}
+.back-btn{
+  padding:8px 22px;border-radius:8px;border:1.5px solid rgba(200,160,240,0.2);
+  background:rgba(255,255,255,0.04);color:#8b6faf;font-size:.75rem;
+  font-family:inherit;cursor:pointer;transition:all .2s;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:24px;
+}
+.back-btn:hover{background:rgba(160,120,220,0.15);border-color:rgba(200,160,240,0.4);color:#c8b8e0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(200,160,240,0.4)}50%{box-shadow:0 0 0 10px rgba(200,160,240,0)}}
+@media(max-width:600px){
+  .card{width:88px;height:150px;margin-left:-12px}
+  .card-num{font-size:.5rem;top:-14px;padding:0 4px}
+  .rev-card{width:130px}.rev-card-inner{width:115px;height:196px}
+  .hero h1{font-size:1.4rem}
+  .meditation-hint{font-size:.58rem}
+  .btn{padding:8px 20px;font-size:.75rem}
+  .top-bar button,.top-bar .count{padding:6px 12px;font-size:.7rem}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+<!-- ========== 选牌页 ========== -->
+<div class="page" id="selectPage">
+  <div class="hero">
+    <h1>✦ Tarot ✦</h1>
+    <div class="sub">韦特系塔罗牌</div>
+    <div class="by">by LD</div>
+  </div>
+
+  <div class="top-bar">
+    <button class="active" data-n="1">抽1张</button>
+    <button data-n="3">抽3张</button>
+    <button data-n="5">抽5张</button>
+    <div class="count" id="count">已选 0 张</div>
+  </div>
+
+  <div class="hint" id="hint">🃏 滑动牌桌 → 点击选牌 → 翻开</div>
+  <div class="meditation-hint">✦ 抽牌时请静心默念心中所问，凭直觉选择与你共鸣的牌 ✦</div>
+
+  <div class="table-area">
+    <div class="arrow arrow-left" onclick="shiftTable(-250)">◀</div>
+    <div class="arrow arrow-right" onclick="shiftTable(250)">▶</div>
+    <div class="table-wrap" id="tableWrap">
+      <div class="table" id="table"></div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn" onclick="shuffleDeck()">🔮 重新洗牌</button>
+    <button class="btn accent" onclick="goReveal()" id="revealBtn">✨ 翻开所选牌</button>
+  </div>
+</div>
+
+<!-- ========== 翻牌页 ========== -->
+<div class="page reveal-page" id="revealPage">
+  <h2>🔮 命运揭示</h2>
+  <div class="rev-sub" id="revSub"></div>
+  <div class="reveal-grid" id="revealGrid"></div>
+  <div class="copy-box" id="copyBox">
+    <label>🔮 你想问什么？（可修改）</label>
+    <input type="text" id="questionInput" placeholder="例如：我近期的感情运势如何？">
+    <button class="copy-btn" id="copyBtn" onclick="copyResult()">📋 点击复制解牌提示词</button>
+  </div>
+  <button class="back-btn" onclick="goBack()">← 返回牌桌</button>
+</div>
+
+</div>
+
+<script>
+// === 塔罗牌数据库 ===
+const MAJOR = [
+  ["The Fool","愚者","🌟","新的开始·冒险·天真","鲁莽·犹豫·错失良机"],
+  ["The Magician","魔术师","🪄","创造力·技能·意志力","欺骗·滥用能力·缺乏计划"],
+  ["The High Priestess","女祭司","🌙","直觉·神秘·潜意识","忽视直觉·秘密泄露·肤浅"],
+  ["The Empress","皇后","👑","丰饶·母性·感官享受","依赖·创造力枯竭·过度保护"],
+  ["The Emperor","皇帝","🏰","权威·稳定·领导力","专制·失控·缺乏纪律"],
+  ["The Hierophant","教皇","📿","传统·信仰·导师","反叛·打破常规·盲目追随"],
+  ["The Lovers","恋人","💕","爱情·和谐·选择","分离·背叛·价值观冲突"],
+  ["The Chariot","战车","⚔️","胜利·意志力·前进","失控·失败·方向迷失"],
+  ["Strength","力量","🦁","勇气·耐心·内在力量","软弱·自我怀疑·失控"],
+  ["The Hermit","隐者","🏮","内省·智慧·独处","孤立·逃避·固执"],
+  ["Wheel of Fortune","命运之轮","🎡","转折·机遇·命运","厄运·停滞·无法掌控"],
+  ["Justice","正义","⚖️","公正·真相·因果","不公·逃避责任·偏见"],
+  ["The Hanged Man","倒吊人","🪢","牺牲·换个角度·等待","拖延·无谓牺牲·固执"],
+  ["Death","死神","💀","结束·转变·重生","抗拒改变·停滞·恐惧"],
+  ["Temperance","节制","🌊","平衡·调和·耐心","极端·失衡·放纵"],
+  ["The Devil","恶魔","😈","欲望·束缚·执念","挣脱·觉醒·摆脱依赖"],
+  ["The Tower","高塔","🗼","崩塌·觉醒·剧变","逃避改变·勉强维持"],
+  ["The Star","星星","⭐","希望·治愈·灵感","绝望·失去信心·失落"],
+  ["The Moon","月亮","🌕","幻象·恐惧·潜意识","真相浮现·克服恐惧"],
+  ["The Sun","太阳","☀️","快乐·成功·活力","短暂快乐·过度乐观"],
+  ["Judgement","审判","📯","觉醒·重生·召唤","逃避审判·自我怀疑"],
+  ["The World","世界","🌍","完成·圆满·成就","未完成·停滞·缺失"]
+];
+const SUITS = ["Wands","Cups","Swords","Pentacles"];
+const SUIT_ZH = ["权杖","圣杯","宝剑","星币"];
+const SUIT_ICON = ["🔥","💧","💨","🪙"];
+const RANKS = ["Ace","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Page","Knight","Queen","King"];
+const RANK_ZH = ["王牌","二","三","四","五","六","七","八","九","十","侍从","骑士","王后","国王"];
+
+let allCards = [];
+MAJOR.forEach(function(c,i){
+  allCards.push({en:c[0],zh:c[1],icon:c[2],up:c[3],rev:c[4],type:"major",id:i});
+});
+SUITS.forEach(function(s,si){
+  RANKS.forEach(function(r,ri){
+    allCards.push({
+      en: r+" of "+s,
+      zh: SUIT_ZH[si]+RANK_ZH[ri],
+      icon: SUIT_ICON[si],
+      up: SUIT_ZH[si]+"·"+RANK_ZH[ri]+"·积极",
+      rev: RANK_ZH[ri]+"逆位·"+SUIT_ZH[si]+"·消极",
+      type:"minor", id:22+si*14+ri
+    });
+  });
+});
+
+let drawCount = 1;
+let selectedCards = new Set();
+let deck = [];
+let scrollPos = 0;
+
+function shuffleArray(arr){
+  var a = [].concat(arr);
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=a[i];a[i]=a[j];a[j]=t;
+  }
+  return a;
+}
+
+function buildDeck(){
+  deck = shuffleArray(allCards).map(function(c){
+    return Object.assign({},c,{reversed:Math.random()<0.5});
+  });
+  selectedCards.clear();
+  updateCount();
+  document.getElementById('hint').textContent = '🃏 滑动牌桌 → 点击选牌 → 翻开';
+}
+
+function renderTable(){
+  var t = document.getElementById('table');
+  t.innerHTML = '';
+  deck.forEach(function(c,i){
+    var d = document.createElement('div');
+    d.className = 'card';
+    d.dataset.index = i;
+    var rot = (Math.random()-0.5)*5;
+    d.style.transform = 'rotate('+rot+'deg)';
+    d.innerHTML = '<div class="card-num">'+(i+1)+'</div><div class="select-ring"></div><div class="card-inner"><div class="card-back"><img src="card_back.png" alt="" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.star\').style.display=\'block\'"><div class="star" style="display:none">✦</div></div></div>';
+    d.addEventListener('click',function(e){
+      e.stopPropagation();
+      toggleCard(i,d);
+    });
+    t.appendChild(d);
+  });
+  scrollPos = 0;
+  document.getElementById('tableWrap').scrollLeft = 0;
+}
+
+function toggleCard(i,el){
+  if(selectedCards.has(i)){
+    selectedCards.delete(i);
+    el.classList.remove('selected');
+  }else{
+    if(selectedCards.size >= drawCount){
+      var first = selectedCards.values().next().value;
+      selectedCards.delete(first);
+      document.querySelectorAll('.card')[first].classList.remove('selected');
+    }
+    selectedCards.add(i);
+    el.classList.add('selected');
+  }
+  updateCount();
+  var h = document.getElementById('hint');
+  var btn = document.getElementById('revealBtn');
+  if(selectedCards.size === drawCount){
+    h.textContent = '✨ 已选满 '+drawCount+' 张，点击翻开';
+    btn.style.animation = 'pulse 1.5s infinite';
+  }else{
+    h.textContent = '🃏 已选 '+selectedCards.size+'/'+drawCount+' 张';
+    btn.style.animation = '';
+  }
+}
+
+function updateCount(){
+  document.getElementById('count').textContent = '已选 '+selectedCards.size+'/'+drawCount+' 张';
+}
+
+function shuffleDeck(){
+  buildDeck();
+  renderTable();
+  updateCount();
+  document.getElementById('revealBtn').style.animation = '';
+}
+
+// === 牌桌滑动 ===
+var wrap = document.getElementById('tableWrap');
+wrap.addEventListener('wheel',function(e){
+  e.preventDefault();
+  scrollPos = Math.max(0, Math.min(scrollPos+(e.deltaY||e.deltaX), wrap.scrollWidth-wrap.clientWidth));
+  wrap.scrollLeft = scrollPos;
+},{passive:false});
+
+var isDragging = false, startX = 0;
+wrap.addEventListener('mousedown',function(e){
+  if(e.target.closest('.card')) return;
+  isDragging = true;
+  startX = e.clientX - scrollPos;
+  wrap.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove',function(e){
+  if(!isDragging) return;
+  scrollPos = Math.max(0, Math.min(e.clientX-startX, wrap.scrollWidth-wrap.clientWidth));
+  wrap.scrollLeft = scrollPos;
+});
+window.addEventListener('mouseup',function(){
+  isDragging = false;
+  wrap.style.cursor = 'grab';
+});
+
+// 移动端触屏滑动
+wrap.addEventListener('touchstart',function(e){
+  if(e.target.closest('.card')) return;
+  isDragging = true;
+  startX = e.touches[0].clientX - scrollPos;
+},{passive:true});
+window.addEventListener('touchmove',function(e){
+  if(!isDragging) return;
+  scrollPos = Math.max(0, Math.min(e.touches[0].clientX-startX, wrap.scrollWidth-wrap.clientWidth));
+  wrap.scrollLeft = scrollPos;
+},{passive:true});
+window.addEventListener('touchend',function(){
+  isDragging = false;
+});
+
+function shiftTable(delta){
+  scrollPos = Math.max(0, Math.min(scrollPos+delta, wrap.scrollWidth-wrap.clientWidth));
+  wrap.scrollLeft = scrollPos;
+}
+
+// === 选牌数按钮 ===
+var btns = document.querySelectorAll('.top-bar button[data-n]');
+btns.forEach(function(b){
+  b.addEventListener('click',function(){
+    btns.forEach(function(x){x.classList.remove('active');});
+    this.classList.add('active');
+    drawCount = parseInt(this.dataset.n);
+    shuffleDeck();
+  });
+});
+
+// === 翻牌页 ===
+function goReveal(){
+  if(selectedCards.size === 0){
+    document.getElementById('hint').textContent = '请先在牌桌上选牌！';
+    return;
+  }
+  var grid = document.getElementById('revealGrid');
+  grid.innerHTML = '';
+  var arr = Array.from(selectedCards).sort(function(a,b){return a-b;});
+  var cards = arr.map(function(i){return deck[i];});
+  var basePromptLines = [];
+
+  basePromptLines.push('请帮我解读以下塔罗牌：');
+  basePromptLines.push('');
+
+  cards.forEach(function(c,i){
+    var el = document.createElement('div');
+    el.className = 'rev-card'+(c.reversed?' reversed':'');
+    var imgName = c.en.replace(/ /g,'_') + '.png';
+    var imgSrc = 'PaiMian/'+imgName;
+    el.innerHTML = 
+      '<div class="rev-card-inner">'+
+        '<div class="rev-face rev-back">'+
+          '<img src="card_back.png" alt="">'+
+        '</div>'+
+        '<div class="rev-face rev-front" id="revFront'+i+'">'+
+          '<img src="'+imgSrc+'" alt="'+c.zh+'" loading="lazy" '+
+               'onerror="var rf=document.getElementById(\'revFront'+i+'\');rf.innerHTML=\'<div class=\\\'r-icon\\\'>'+c.icon+'</div><div class=\\\'r-en\\\'>'+c.en+'</div>\';rf.style.background=\'linear-gradient(180deg,#faf5ef,#f0e8d8)\'" '+
+               'onload="document.getElementById(\'cdLabel'+i+'\').parentElement.classList.add(\'use-image\')">'+
+        '</div>'+
+      '</div>'+
+      '<div class="rev-label" id="cdLabel'+i+'">'+
+        c.icon+' '+c.zh+
+        '<span class="rev-pos-tag '+(c.reversed?'rev':'up')+'">'+(c.reversed?'逆位':'正位')+'</span>'+
+      '</div>';
+    basePromptLines.push('第'+(i+1)+'张：'+c.zh+'（'+c.en+'）—— '+(c.reversed?'逆位':'正位')+'，关键词：'+(c.reversed?c.rev:c.up));
+    grid.appendChild(el);
+  });
+
+  basePromptLines.push('');
+  basePromptLines.push('请综合以上塔罗牌，给出详细解读，包括每张牌的含义以及在整体中的关联。');
+
+  document.getElementById('copyBtn').dataset.basePrompt = basePromptLines.join('\n');
+  document.getElementById('questionInput').value = '';
+  updatePromptText();
+
+  document.getElementById('revSub').textContent = drawCount+' 张牌 · 点击牌背逐一翻开';
+
+  // 绑定点击翻开
+  document.querySelectorAll('.rev-card').forEach(function(el,i){
+    el.addEventListener('click',function(){
+      if(el.classList.contains('flipped')) return;
+      el.classList.add('flipped');
+      var flipped = document.querySelectorAll('.rev-card.flipped').length;
+      document.getElementById('revSub').textContent = '已翻开 '+flipped+'/'+cards.length+' 张';
+      if(flipped === cards.length){
+        document.getElementById('revSub').textContent = '✦ 全部揭开 ✦';
+        document.getElementById('copyBox').style.display = 'flex';
+      }
+    });
+  });
+
+  document.getElementById('copyBox').style.display = 'none';
+  document.getElementById('app').classList.add('on-reveal');
+}
+
+function updatePromptText(){
+  var q = document.getElementById('questionInput').value.trim();
+  var base = document.getElementById('copyBtn').dataset.basePrompt;
+  if(!q){
+    document.getElementById('copyBtn').dataset.fullPrompt = base;
+  }else{
+    var fp = base.replace('请帮我解读以下塔罗牌：','我想问的问题是：'+q+'\n\n请帮我解读以下塔罗牌：');
+    document.getElementById('copyBtn').dataset.fullPrompt = fp;
+  }
+}
+
+function copyResult(){
+  var text = document.getElementById('copyBtn').dataset.fullPrompt || document.getElementById('copyBtn').dataset.basePrompt;
+  navigator.clipboard.writeText(text).then(function(){
+    var btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ 已复制！粘贴给DeepSeek即可解牌';
+    btn.classList.add('copied');
+    setTimeout(function(){
+      btn.textContent = '📋 点击复制解牌提示词';
+      btn.classList.remove('copied');
+    },2500);
+  });
+}
+
+function goBack(){
+  document.getElementById('app').classList.remove('on-reveal');
+  document.getElementById('revealBtn').style.animation = '';
+  document.getElementById('hint').textContent = '🃏 滑动牌桌 → 点击选牌 → 翻开';
+}
+
+// 输入框监听
+document.getElementById('questionInput').addEventListener('input', updatePromptText);
+
+// 启动！
+buildDeck();
+renderTable();
+</script>
+</body>
+</html>
